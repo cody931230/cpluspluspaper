@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 3 講｜類別、建構子與 RAII｜課程讀書筆記站</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="site-title" href="../index.html">課程讀書筆記站</a>
+    <a class="back-link" href="../index.html">← 回首頁</a>
+  </div>
+</header>
+
+<main>
+  <h1>第 3 講：類別、建構子與 RAII</h1>
+
+  <section class="meta">
+    <dl>
+      <dt>講次</dt><dd>第 3 講</dd>
+      <dt>先備知識</dt><dd>第 1–2 講</dd>
+      <dt>適用標準</dt><dd>C++11 起（<code>= delete</code>、移動語意）；範例以 C++17 編譯</dd>
+      <dt>最後檢查</dt><dd>2026-11-10</dd>
+    </dl>
+  </section>
+
+  <section class="objectives">
+    <h2>學習目標</h2>
+    <ul>
+      <li>能夠撰寫具有建構子、解構子與封裝介面的類別</li>
+      <li>能夠解釋 RAII 原則，並用它管理資源</li>
+      <li>能夠依據 Rule of Zero／Three／Five 決定特殊成員函式的設計</li>
+    </ul>
+  </section>
+
+  <section class="concepts">
+    <h2>核心概念</h2>
+    <h3>類別與封裝</h3>
+    <p><code>class</code> 預設成員為 <code>private</code>，<code>struct</code> 預設為 <code>public</code>。資料成員應設為 <code>private</code>，只透過成員函式存取，以維持不變式（invariant）。</p>
+
+    <h3>建構子與初始化列表</h3>
+    <p>成員應在初始化列表中初始化，而非在建構子主體中賦值。單一參數的建構子建議加上 <code>explicit</code>，以避免隱含轉換。</p>
+
+    <h3>RAII</h3>
+    <p>RAII（Resource Acquisition Is Initialization）是指：資源在物件建構時取得，在解構時釋放。由於區域物件在離開作用域時必定會解構（包括例外發生時），RAII 能讓資源管理不依賴人工記得呼叫釋放函式。標準庫中的 <code>std::lock_guard</code>、<code>std::fstream</code> 都是 RAII 的例子。</p>
+
+    <h3>Rule of Zero／Three／Five</h3>
+    <p>若類別直接持有資源（如原始指標），通常需要處理解構、拷貝建構、拷貝指派，C++11 後還需考慮移動建構與移動指派（Rule of Five）。更好的做法是讓成員本身就是 RAII 類型（如 <code>std::vector</code>、智慧指標），使類別不需要自訂任何特殊成員函式（Rule of Zero）。</p>
+  </section>
+
+  <section class="examples">
+    <h2>程式範例</h2>
+    <p>編譯指令：<code>g++ -std=c++17 -Wall -Wextra main.cpp</code></p>
+
+    <h3>範例 1：以 RAII 管理動態陣列，並禁止拷貝</h3>
+    <pre><code class="language-cpp">#include &lt;cstddef&gt;
+#include &lt;iostream&gt;
+
+class IntBuffer {
+public:
+    explicit IntBuffer(std::size_t n) : size_(n), data_(new int[n]{}) {}
+    ~IntBuffer() { delete[] data_; }
+
+    IntBuffer(const IntBuffer&amp;) = delete;             // 禁止拷貝，避免 double delete
+    IntBuffer&amp; operator=(const IntBuffer&amp;) = delete;
+
+    int&amp; at(std::size_t i)       { return data_[i]; }
+    std::size_t size() const      { return size_; }
+
+private:
+    std::size_t size_;
+    int* data_;
+};
+
+int main() {
+    IntBuffer buf(4);
+    buf.at(2) = 99;
+    std::cout &lt;&lt; buf.at(2) &lt;&lt; " size=" &lt;&lt; buf.size() &lt;&lt; '\n';
+    // IntBuffer copy = buf;   // 編譯錯誤：拷貝建構子已被刪除
+    return 0;
+}  // 離開作用域時自動呼叫 ~IntBuffer()，釋放記憶體
+</code></pre>
+    <p class="output-label">預期輸出：</p>
+    <pre><code>99 size=4
+</code></pre>
+
+    <h3>範例 2：同樣功能，以 Rule of Zero 實作</h3>
+    <pre><code class="language-cpp">#include &lt;cstddef&gt;
+#include &lt;vector&gt;
+
+class IntBuffer {
+public:
+    explicit IntBuffer(std::size_t n) : data_(n) {}   // vector 負責所有資源管理
+    int&amp; at(std::size_t i)       { return data_[i]; }
+    std::size_t size() const      { return data_.size(); }
+private:
+    std::vector&lt;int&gt; data_;
+};
+</code></pre>
+    <p>此版本不需要任何解構子、拷貝或移動函式，且可以安全地被拷貝與移動。</p>
+  </section>
+
+  <section class="pitfalls">
+    <h2>常見錯誤</h2>
+    <ul>
+      <li><strong>淺拷貝導致 double delete</strong>：編譯器產生的預設拷貝建構子只會複製指標值，兩個物件會釋放同一塊記憶體。若類別持有原始資源，應刪除拷貝或實作深拷貝。</li>
+      <li><strong>忘記 <code>delete[]</code></strong>：以 <code>new[]</code> 配置的陣列必須以 <code>delete[]</code> 釋放，混用 <code>delete</code> 是未定義行為。</li>
+      <li><strong>在建構子主體中賦值而非初始化</strong>：成員會先被預設建構再被賦值，對於 <code>const</code> 成員或參考成員則根本無法編譯。</li>
+    </ul>
+  </section>
+
+  <section class="exercises">
+    <h2>課堂練習</h2>
+    <details>
+      <summary>練習 1：為 <code>IntBuffer</code> 加入移動建構子，使其可以被移動但不能被拷貝</summary>
+      <pre><code class="language-cpp">IntBuffer(IntBuffer&amp;&amp; other) noexcept
+    : size_(other.size_), data_(other.data_) {
+    other.size_ = 0;
+    other.data_ = nullptr;   // 讓來源物件的解構子不會再次釋放
+}</code></pre>
+    </details>
+    <details>
+      <summary>練習 2：說明為何 <code>std::vector</code> 版本能滿足 Rule of Zero</summary>
+      <p><code>std::vector</code> 本身已經是 RAII 類型，並正確定義了解構、拷貝與移動。包含它的類別只需依賴其預設行為即可。</p>
+    </details>
+  </section>
+
+  <section class="references">
+    <h2>參考資料</h2>
+    <ul>
+      <li><a href="https://en.cppreference.com/w/cpp/language/raii">cppreference：RAII</a></li>
+      <li><a href="https://en.cppreference.com/w/cpp/language/rule_of_three">cppreference：Rule of three／five／zero</a></li>
+      <li>Bjarne Stroustrup，《A Tour of C++》，類別與資源管理相關章節</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>© 課程讀書筆記站｜內容為學習用途的個人整理</p>
+</footer>
+
+</body>
+</html>

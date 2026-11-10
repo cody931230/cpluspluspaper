@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 1 講｜基礎：型別、變數與輸入輸出｜課程讀書筆記站</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="site-title" href="../index.html">課程讀書筆記站</a>
+    <a class="back-link" href="../index.html">← 回首頁</a>
+  </div>
+</header>
+
+<main>
+  <h1>第 1 講：基礎型別、變數與輸入輸出</h1>
+
+  <section class="meta">
+    <dl>
+      <dt>講次</dt><dd>第 1 講</dd>
+      <dt>先備知識</dt><dd>程式設計基本概念</dd>
+      <dt>適用標準</dt><dd>C++11 起（<code>auto</code>、<code>constexpr</code>）；範例以 C++17 編譯</dd>
+      <dt>最後檢查</dt><dd>2026-11-10</dd>
+    </dl>
+  </section>
+
+  <section class="objectives">
+    <h2>學習目標</h2>
+    <ul>
+      <li>能夠宣告基本型別並說明其大小與範圍會依平台而異</li>
+      <li>能夠使用 <code>const</code> 與 <code>auto</code> 表達不可變性與型別推導</li>
+      <li>能夠使用 <code>std::cout</code> 與 <code>std::cin</code> 進行基本輸入輸出</li>
+      <li>能夠辨認整數除法與有號溢位等常見陷阱</li>
+    </ul>
+  </section>
+
+  <section class="concepts">
+    <h2>核心概念</h2>
+    <h3>基本型別</h3>
+    <p>常用的內建型別包括 <code>bool</code>、<code>char</code>、<code>int</code>、<code>long long</code>、<code>double</code>。C++ 標準只規定各型別的最小範圍，例如 <code>int</code> 至少能表示 16 位元有號整數；實際大小請用 <code>sizeof</code> 查詢，多數 32 位元平台上 <code>int</code> 為 4 位元組。</p>
+
+    <h3>變數、<code>const</code> 與 <code>auto</code></h3>
+    <p><code>const</code> 宣告的物件初始化後不可修改；<code>constexpr</code>（C++11）則要求值在編譯期即可求得。<code>auto</code>（C++11）由初始化式推導型別，適合型別名稱很長或由函式回傳的情況，但不應濫用到讓讀者無法判斷型別。</p>
+
+    <h3>輸入輸出</h3>
+    <p><code>std::cout</code> 用於輸出，<code>std::cin</code> 用於輸入，兩者都定義於 <code>&lt;iostream&gt;</code>。使用 <code>'\n'</code> 換行通常比 <code>std::endl</code> 更好，因為 <code>std::endl</code> 會額外清空緩衝區。</p>
+
+    <h3>整數除法</h3>
+    <p>兩個整數相除時結果為整數，小數部分會被捨去。若要得到浮點數結果，需先將其中一個運算元轉為浮點數。</p>
+  </section>
+
+  <section class="examples">
+    <h2>程式範例</h2>
+    <p>編譯指令：<code>g++ -std=c++17 -Wall -Wextra main.cpp</code></p>
+
+    <h3>範例 1：宣告與輸出</h3>
+    <pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;string&gt;
+
+int main() {
+    int count = 3;                    // 有號整數
+    double price = 99.5;              // 浮點數
+    bool ok = count &gt; 0;              // 比較結果為 bool
+    const int max_size = 10;          // 初始化後不可修改
+    auto name = std::string{"C++"};   // auto 推導為 std::string
+
+    std::cout &lt;&lt; name &lt;&lt; " price: " &lt;&lt; price &lt;&lt; '\n';
+    std::cout &lt;&lt; "ok = " &lt;&lt; std::boolalpha &lt;&lt; ok &lt;&lt; '\n';
+    std::cout &lt;&lt; "max_size = " &lt;&lt; max_size &lt;&lt; '\n';
+    return 0;
+}
+</code></pre>
+    <p class="output-label">預期輸出：</p>
+    <pre><code>C++ price: 99.5
+ok = true
+max_size = 10
+</code></pre>
+
+    <h3>範例 2：整數除法與型別轉換</h3>
+    <pre><code class="language-cpp">#include &lt;iostream&gt;
+
+int main() {
+    int a = 7, b = 2;
+    std::cout &lt;&lt; a / b &lt;&lt; '\n';                        // 整數除法
+    std::cout &lt;&lt; a / static_cast&lt;double&gt;(b) &lt;&lt; '\n';   // 浮點數除法
+    return 0;
+}
+</code></pre>
+    <p class="output-label">預期輸出：</p>
+    <pre><code>3
+3.5
+</code></pre>
+  </section>
+
+  <section class="pitfalls">
+    <h2>常見錯誤</h2>
+    <ul>
+      <li><strong>有號整數溢位是未定義行為（UB）</strong>：<code>int</code> 超過最大值時結果不確定，編譯器可能做出與直覺不同的最佳化。無號整數的溢位則有明確定義（數值取模）。</li>
+      <li><strong>有號與無號比較</strong>：<code>int i = -1; unsigned u = 1;</code> 時，<code>i &lt; u</code> 的結果為 <code>false</code>，因為 <code>i</code> 會被轉為無號數。開啟 <code>-Wall -Wextra</code> 可取得警告。</li>
+      <li><strong>標頭檔中使用 <code>using namespace std;</code></strong>：會汙染所有包含此檔案的程式碼，應只在 <code>.cpp</code> 的局部範圍使用，或直接寫 <code>std::</code>。</li>
+    </ul>
+  </section>
+
+  <section class="exercises">
+    <h2>課堂練習</h2>
+    <details>
+      <summary>練習 1：讀入三個整數並輸出平均值（保留小數）</summary>
+      <pre><code class="language-cpp">#include &lt;iostream&gt;
+
+int main() {
+    int x, y, z;
+    std::cin &gt;&gt; x &gt;&gt; y &gt;&gt; z;
+    double avg = (x + y + z) / 3.0;   // 3.0 為 double，避免整數除法
+    std::cout &lt;&lt; avg &lt;&lt; '\n';
+    return 0;
+}</code></pre>
+    </details>
+    <details>
+      <summary>練習 2：判斷西元年份是否為閏年</summary>
+      <p>規則：能被 4 整除且不能被 100 整除，或能被 400 整除。</p>
+      <pre><code class="language-cpp">bool is_leap(int year) {
+    return (year % 4 == 0 &amp;&amp; year % 100 != 0) || year % 400 == 0;
+}</code></pre>
+    </details>
+  </section>
+
+  <section class="references">
+    <h2>參考資料</h2>
+    <ul>
+      <li><a href="https://en.cppreference.com/w/cpp/language/types">cppreference：Fundamental types</a></li>
+      <li><a href="https://en.cppreference.com/w/cpp/language/ub">cppreference：Undefined behavior</a></li>
+      <li>Bjarne Stroustrup，《A Tour of C++》（第 3 版）第 1–2 章</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>© 課程讀書筆記站｜內容為學習用途的個人整理</p>
+</footer>
+
+</body>
+</html>

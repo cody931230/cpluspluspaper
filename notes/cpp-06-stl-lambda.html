@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 6 講｜STL、迭代器與 Lambda｜課程讀書筆記站</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="site-title" href="../index.html">課程讀書筆記站</a>
+    <a class="back-link" href="../index.html">← 回首頁</a>
+  </div>
+</header>
+
+<main>
+  <h1>第 6 講：STL、迭代器與 Lambda</h1>
+
+  <section class="meta">
+    <dl>
+      <dt>講次</dt><dd>第 6 講</dd>
+      <dt>先備知識</dt><dd>第 3–5 講</dd>
+      <dt>適用標準</dt><dd>容器與演算法為 C++98 起；Lambda 為 C++11；<code>std::ranges</code> 為 C++20；範例以 C++20 編譯</dd>
+      <dt>最後檢查</dt><dd>2026-11-10</dd>
+    </dl>
+  </section>
+
+  <section class="objectives">
+    <h2>學習目標</h2>
+    <ul>
+      <li>能夠依需求選擇適當的容器（<code>vector</code>、<code>map</code>、<code>unordered_map</code>）</li>
+      <li>能夠使用演算法搭配 lambda 取代手寫迴圈</li>
+      <li>能夠辨認迭代器失效等常見錯誤</li>
+    </ul>
+  </section>
+
+  <section class="concepts">
+    <h2>核心概念</h2>
+    <h3>容器與迭代器</h3>
+    <p>STL 將資料結構（容器）與演算法透過迭代器（iterator）分離。<code>std::vector</code> 為連續記憶體，隨機存取快，預設應優先考慮。<code>std::map</code> 以有序樹狀結構儲存（標準未規定實作，但要求對數時間複雜度），<code>std::unordered_map</code> 以雜湊表實作，平均查詢為常數時間。</p>
+
+    <h3>演算法</h3>
+    <p>如 <code>std::sort</code>、<code>std::find_if</code>、<code>std::count_if</code> 等演算法接受迭代器區間與可呼叫物件，不需要知道容器的具體型別。</p>
+
+    <h3>Lambda（C++11）</h3>
+    <p>Lambda 運算式 <code>[捕獲](參數){ 本體 }</code> 會產生一個匿名函式物件。捕獲列表決定外部變數如何被使用：<code>[x]</code> 為複製，<code>[&amp;x]</code> 為參考。</p>
+
+    <h3>Ranges（C++20）</h3>
+    <p><code>std::ranges</code> 讓演算法可以直接接受容器本身，並提供 <code>views</code>（如 <code>views::filter</code>）以惰性方式組合管線，不會產生中間容器。</p>
+  </section>
+
+  <section class="examples">
+    <h2>程式範例</h2>
+    <p>編譯指令：<code>g++ -std=c++20 -Wall -Wextra main.cpp</code></p>
+
+    <h3>範例 1：演算法搭配 lambda</h3>
+    <pre><code class="language-cpp">#include &lt;algorithm&gt;
+#include &lt;iostream&gt;
+#include &lt;vector&gt;
+
+int main() {
+    std::vector&lt;int&gt; v{5, 2, 8, 1, 9};
+    std::sort(v.begin(), v.end());
+
+    int threshold = 4;
+    auto n = std::count_if(v.begin(), v.end(),
+        [threshold](int x) { return x &gt; threshold; });   // 以複製方式捕獲
+    std::cout &lt;&lt; "count &gt; 4: " &lt;&lt; n &lt;&lt; '\n';
+    return 0;
+}
+</code></pre>
+    <p class="output-label">預期輸出：</p>
+    <pre><code>count &gt; 4: 3
+</code></pre>
+
+    <h3>範例 2：C++20 ranges 管線</h3>
+    <pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;ranges&gt;
+#include &lt;vector&gt;
+
+int main() {
+    std::vector&lt;int&gt; v{1, 2, 5, 8, 9};
+    auto evens = v | std::views::filter([](int x) { return x % 2 == 0; });
+    for (int x : evens) std::cout &lt;&lt; x &lt;&lt; ' ';
+    std::cout &lt;&lt; '\n';
+    return 0;
+}
+</code></pre>
+    <p class="output-label">預期輸出：</p>
+    <pre><code>2 8
+</code></pre>
+  </section>
+
+  <section class="pitfalls">
+    <h2>常見錯誤</h2>
+    <ul>
+      <li><strong>在迴圈中對 <code>vector</code> 使用 <code>push_back</code> 導致迭代器失效</strong>：容量不足時會重新配置記憶體，原有迭代器全部失效。需要時應先呼叫 <code>reserve</code>，或重新取得迭代器。</li>
+      <li><strong>迭代中直接 <code>erase</code></strong>：<code>erase</code> 之後原迭代器失效。應使用 <code>it = v.erase(it);</code>，或使用 <code>std::erase_if</code>（C++20）。</li>
+      <li><strong>回傳以參考捕獲區域變數的 lambda</strong>：函式結束後被捕獲的變數已被銷毀，呼叫 lambda 為未定義行為。需要離開作用域時應使用複製捕獲。</li>
+    </ul>
+  </section>
+
+  <section class="exercises">
+    <h2>課堂練習</h2>
+    <details>
+      <summary>練習 1：給定 <code>std::vector&lt;std::string&gt;</code>，計算長度超過 5 的字串數量</summary>
+      <pre><code class="language-cpp">auto n = std::count_if(words.begin(), words.end(),
+    [](const std::string&amp; s) { return s.size() &gt; 5; });</code></pre>
+    </details>
+    <details>
+      <summary>練習 2：比較 <code>std::map</code> 與 <code>std::unordered_map</code> 的適用情境</summary>
+      <p>若需要依鍵排序的遍歷，或需要 <code>lower_bound</code> 等有序操作，選擇 <code>map</code>；若只需快速查找且不在意順序，選擇 <code>unordered_map</code>。</p>
+    </details>
+  </section>
+
+  <section class="references">
+    <h2>參考資料</h2>
+    <ul>
+      <li><a href="https://en.cppreference.com/w/cpp/algorithm">cppreference：Algorithms library</a></li>
+      <li><a href="https://en.cppreference.com/w/cpp/language/lambda">cppreference：Lambda expressions</a></li>
+      <li><a href="https://en.cppreference.com/w/cpp/ranges">cppreference：Ranges library</a></li>
+    </ul>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>© 課程讀書筆記站｜內容為學習用途的個人整理</p>
+</footer>
+
+</body>
+</html>

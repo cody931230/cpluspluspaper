@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>C++ 講義｜課程讀書筆記站</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="site-title" href="index.html">課程讀書筆記站</a>
+  </div>
+</header>
+
+<main>
+  <h1>C++ 講義</h1>
+  <p class="intro">從基礎型別到現代 C++ 的七講講義。每講包含學習目標、可編譯範例、常見錯誤與課堂練習。建議依序閱讀。</p>
+
+  <ul class="note-list">
+    <li class="note-card">
+      <a href="notes/cpp-01-basics.html">
+        <h2>第 1 講：基礎型別、變數與輸入輸出</h2>
+        <p class="note-meta">C++11 起 · 型別、const、auto、整數除法</p>
+        <p>認識內建型別的範圍限制，並避開有號溢位與有號無號比較等陷阱。</p>
+      </a>
+    </li>
+    <li class="note-card">
+      <a href="notes/cpp-02-functions-references.html">
+        <h2>第 2 講：函式、多載與參考</h2>
+        <p class="note-meta">傳值 · 傳參考 · 多載 · 預設參數</p>
+        <p>區分傳值、傳參考與 const 參考，並避免回傳區域變數參考。</p>
+      </a>
+    </li>
+    <li class="note-card">
+      <a href="notes/cpp-03-classes-raii.html">
+        <h2>第 3 講：類別、建構子與 RAII</h2>
+        <p class="note-meta">封裝 · RAII · Rule of Zero／Three／Five</p>
+        <p>以 RAII 管理資源，並了解為何多數情況下應選擇 Rule of Zero。</p>
+      </a>
+    </li>
+    <li class="note-card">
+      <a href="notes/cpp-04-smart-pointers.html">
+        <h2>第 4 講：動態記憶體與智慧指標</h2>
+        <p class="note-meta">unique_ptr · shared_ptr · weak_ptr</p>
+        <p>依所有權語意選擇智慧指標，並以 weak_ptr 打破循環參照。</p>
+      </a>
+    </li>
+    <li class="note-card">
+      <a href="notes/cpp-05-templates-concepts.html">
+        <h2>第 5 講：模板與概念</h2>
+        <p class="note-meta">函式模板 · 類別模板 · Concepts（C++20）</p>
+        <p>撰寫泛型程式碼，並以 concept 讓模板錯誤訊息更易讀。</p>
+      </a>
+    </li>
+    <li class="note-card">
+      <a href="notes/cpp-06-stl-lambda.html">
+        <h2>第 6 講：STL、迭代器與 Lambda</h2>
+        <p class="note-meta">容器 · 演算法 · Lambda · Ranges（C++20）</p>
+        <p>以演算法搭配 lambda 取代手寫迴圈，並避免迭代器失效。</p>
+      </a>
+    </li>
+    <li class="note-card">
+      <a href="notes/cpp-07-modern-cpp.html">
+        <h2>第 7 講：現代 C++：移動語意與常用工具</h2>
+        <p class="note-meta">右值參考 · std::move · optional · variant</p>
+        <p>理解移動語意與 noexcept 的關係，並使用 optional 表達可能缺值的結果。</p>
+      </a>
+    </li>
+  </ul>
+</main>
+
+<footer class="site-footer">
+  <p>© 課程讀書筆記站｜內容為學習用途的個人整理</p>
+</footer>
+
+</body>
+</html>

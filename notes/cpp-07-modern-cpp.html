@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 7 講｜現代 C++：移動語意與常用工具｜課程讀書筆記站</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="site-title" href="../index.html">課程讀書筆記站</a>
+    <a class="back-link" href="../index.html">← 回首頁</a>
+  </div>
+</header>
+
+<main>
+  <h1>第 7 講：現代 C++：移動語意與常用工具</h1>
+
+  <section class="meta">
+    <dl>
+      <dt>講次</dt><dd>第 7 講</dd>
+      <dt>先備知識</dt><dd>第 3 講（類別）、第 4 講（智慧指標）</dd>
+      <dt>適用標準</dt><dd>移動語意為 C++11；<code>std::optional</code>、<code>std::variant</code>、結構化綁定為 C++17；範例以 C++17 編譯</dd>
+      <dt>最後檢查</dt><dd>2026-11-10</dd>
+    </dl>
+  </section>
+
+  <section class="objectives">
+    <h2>學習目標</h2>
+    <ul>
+      <li>能夠解釋右值參考與移動語意，並撰寫移動建構子與移動指派</li>
+      <li>能夠說明 <code>std::move</code> 本身只是型別轉換，並不實際移動物件</li>
+      <li>能夠使用 <code>std::optional</code>、<code>std::variant</code> 與結構化綁定表達常見情境</li>
+    </ul>
+  </section>
+
+  <section class="concepts">
+    <h2>核心概念</h2>
+    <h3>右值參考與移動語意</h3>
+    <p>右值參考 <code>T&amp;&amp;</code>（C++11）可以綁定到即將被銷毀的臨時物件。移動建構子利用這一點，把來源物件持有的資源「接收」過來，而不是複製。移動後的來源物件仍處於有效但未指定的狀態，只能安全地解構或重新賦值。</p>
+
+    <h3><code>std::move</code></h3>
+    <p><code>std::move</code> 本身不移動任何東西，它只是把運算元轉為右值參考，允許後續的移動建構或移動指派被選用。</p>
+
+    <h3><code>noexcept</code> 的重要性</h3>
+    <p><code>std::vector</code> 在重新配置時，只有在元素的移動建構子不會拋出例外時才會使用移動；否則會退回複製，以保證強例外安全。因此移動操作通常應標記為 <code>noexcept</code>。</p>
+
+    <h3><code>std::optional</code>、<code>std::variant</code> 與結構化綁定（C++17）</h3>
+    <p><code>std::optional&lt;T&gt;</code> 表示「可能有值，也可能沒有」，取代以特殊值或指標表示缺值的寫法。<code>std::variant</code> 是型別安全的聯合體，在任一時刻只持有其中一種型別。結構化綁定 <code>auto [a, b] = ...</code> 可以同時解開 pair、tuple 或結構的成員。</p>
+  </section>
+
+  <section class="examples">
+    <h2>程式範例</h2>
+    <p>編譯指令：<code>g++ -std=c++17 -Wall -Wextra main.cpp</code></p>
+
+    <h3>範例 1：移動建構子與 <code>std::move</code></h3>
+    <pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;string&gt;
+#include &lt;utility&gt;
+
+class Message {
+public:
+    explicit Message(std::string text) : text_(std::move(text)) {}
+
+    Message(Message&amp;&amp; other) noexcept : text_(std::move(other.text_)) {}
+    Message&amp; operator=(Message&amp;&amp; other) noexcept {
+        text_ = std::move(other.text_);
+        return *this;
+    }
+
+    const std::string&amp; text() const { return text_; }
+
+private:
+    std::string text_;
+};
+
+int main() {
+    Message a{"hello, move semantics"};
+    Message b = std::move(a);    // 呼叫移動建構子
+    std::cout &lt;&lt; b.text() &lt;&lt; '\n';
+    // a.text() 仍可呼叫，但內容為未指定狀態，不應再依賴其值
+    return 0;
+}
+</code></pre>
+    <p class="output-label">預期輸出：</p>
+    <pre><code>hello, move semantics
+</code></pre>
+
+    <h3>範例 2：<code>std::optional</code> 與結構化綁定</h3>
+    <pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;map&gt;
+#include &lt;optional&gt;
+#include &lt;string&gt;
+
+std::optional&lt;int&gt; find_age(const std::map&lt;std::string, int&gt;&amp; db,
+                              const std::string&amp; name) {
+    auto it = db.find(name);
+    if (it == db.end()) return std::nullopt;   // 表示沒有值
+    return it-&gt;second;
+}
+
+int main() {
+    std::map&lt;std::string, int&gt; db{{"Ann", 20}, {"Ben", 22}};
+
+    if (auto age = find_age(db, "Ann"); age) {   // if 初始化陳述式（C++17）
+        std::cout &lt;&lt; "Ann: " &lt;&lt; *age &lt;&lt; '\n';
+    }
+
+    for (const auto&amp; [name, age] : db) {       // 結構化綁定
+        std::cout &lt;&lt; name &lt;&lt; " -&gt; " &lt;&lt; age &lt;&lt; '\n';
+    }
+    return 0;
+}
+</code></pre>
+    <p class="output-label">預期輸出：</p>
+    <pre><code>Ann: 20
+Ann -&gt; 20
+Ben -&gt; 22
+</code></pre>
+  </section>
+
+  <section class="pitfalls">
+    <h2>常見錯誤</h2>
+    <ul>
+      <li><strong>移動建構子未標 <code>noexcept</code></strong>：<code>std::vector</code> 擴容時會退回複製，效能下降且容易被忽略。</li>
+      <li><strong>使用已被移走的物件</strong>：<code>std::move</code> 之後的物件只能安全地賦值或解構，讀取其內容的行為不被保證。</li>
+      <li><strong>以為 <code>std::move</code> 會讓原物件變成 <code>nullptr</code></strong>：這只對某些型別（如 <code>unique_ptr</code>）在其移動操作中成立，取決於型別自身的移動實作。</li>
+      <li><strong>對 <code>const</code> 物件使用 <code>std::move</code></strong>：<code>const T&amp;&amp;</code> 無法綁定到移動建構子，會退回複製，不會產生預期效果。</li>
+    </ul>
+  </section>
+
+  <section class="exercises">
+    <h2>課堂練習</h2>
+    <details>
+      <summary>練習 1：以 <code>std::optional&lt;double&gt;</code> 實作安全除法，除數為 0 時回傳空值</summary>
+      <pre><code class="language-cpp">std::optional&lt;double&gt; safe_div(double a, double b) {
+    if (b == 0.0) return std::nullopt;
+    return a / b;
+}</code></pre>
+    </details>
+    <details>
+      <summary>練習 2：預測下列程式是否會複製字串，並說明原因</summary>
+      <pre><code class="language-cpp">std::vector&lt;std::string&gt; v;
+std::string s = "data";
+v.push_back(std::move(s));   // 移動，不複製</code></pre>
+      <p><code>std::move(s)</code> 將 <code>s</code> 轉為右值，<code>push_back</code> 會選擇移動建構，因此不會複製字串內容。</p>
+    </details>
+  </section>
+
+  <section class="references">
+    <h2>參考資料</h2>
+    <ul>
+      <li><a href="https://en.cppreference.com/w/cpp/language/move_constructor">cppreference：Move constructor</a></li>
+      <li><a href="https://en.cppreference.com/w/cpp/utility/optional">cppreference：std::optional</a></li>
+      <li><a href="https://en.cppreference.com/w/cpp/language/structured_binding">cppreference：Structured binding declaration</a></li>
+    </ul>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>© 課程讀書筆記站｜內容為學習用途的個人整理</p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 2 講｜函式、多載與參考｜課程讀書筆記站</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="site-title" href="../index.html">課程讀書筆記站</a>
+    <a class="back-link" href="../index.html">← 回首頁</a>
+  </div>
+</header>
+
+<main>
+  <h1>第 2 講：函式、多載與參考</h1>
+
+  <section class="meta">
+    <dl>
+      <dt>講次</dt><dd>第 2 講</dd>
+      <dt>先備知識</dt><dd>第 1 講</dd>
+      <dt>適用標準</dt><dd>C++98 起的核心語法；範例以 C++17 編譯</dd>
+      <dt>最後檢查</dt><dd>2026-11-10</dd>
+    </dl>
+  </section>
+
+  <section class="objectives">
+    <h2>學習目標</h2>
+    <ul>
+      <li>能夠區分傳值、傳參考與傳 <code>const</code> 參考的差異與適用時機</li>
+      <li>能夠設計具有預設參數與多載的函式</li>
+      <li>能夠避免回傳區域變數參考等懸空參考問題</li>
+    </ul>
+  </section>
+
+  <section class="concepts">
+    <h2>核心概念</h2>
+    <h3>傳值、傳參考與 <code>const</code> 參考</h3>
+    <p>預設情況下 C++ 採用傳值（pass by value），函式內部操作的是複製品。<code>T&amp;</code> 表示參考，函式內對參數的修改會影響原物件。當參數只需讀取但型別較大（如 <code>std::string</code>）時，使用 <code>const T&amp;</code> 可以避免複製，且允許傳入臨時物件。</p>
+
+    <h3>函式多載</h3>
+    <p>同一作用域中，只要參數型別、數量或順序不同，就可以定義同名函式。回傳型別不同不能作為多載依據。</p>
+
+    <h3>預設參數</h3>
+    <p>預設參數只能寫在宣告中一次，且從右往左連續指定。</p>
+
+    <h3><code>inline</code> 的真正意義</h3>
+    <p>在現代 C++ 中，<code>inline</code> 的主要語意是允許函式定義出現在多個翻譯單元中，而不是要求編譯器一定內嵌展開。是否內嵌由編譯器決定。</p>
+  </section>
+
+  <section class="examples">
+    <h2>程式範例</h2>
+    <p>編譯指令：<code>g++ -std=c++17 -Wall -Wextra main.cpp</code></p>
+
+    <h3>範例 1：三種參數傳遞方式</h3>
+    <pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;string&gt;
+
+void by_value(int n)            { ++n; }        // 修改的是複製品
+void by_ref(int&amp; n)            { ++n; }        // 修改原物件
+void show(const std::string&amp; s) { std::cout &lt;&lt; s &lt;&lt; '\n'; }  // 唯讀、免複製
+
+int main() {
+    int x = 10;
+    by_value(x);
+    std::cout &lt;&lt; x &lt;&lt; '\n';   // 10
+    by_ref(x);
+    std::cout &lt;&lt; x &lt;&lt; '\n';   // 11
+    show("temporary string");  // const 參考可接受臨時物件
+    return 0;
+}
+</code></pre>
+    <p class="output-label">預期輸出：</p>
+    <pre><code>10
+11
+temporary string
+</code></pre>
+
+    <h3>範例 2：多載與預設參數</h3>
+    <pre><code class="language-cpp">#include &lt;iostream&gt;
+
+int add(int a, int b = 0)       { return a + b; }
+double add(double a, double b)  { return a + b; }
+
+int main() {
+    std::cout &lt;&lt; add(2, 3) &lt;&lt; '\n';        // 呼叫 int 版本：5
+    std::cout &lt;&lt; add(2.5, 0.5) &lt;&lt; '\n';    // 呼叫 double 版本：3
+    std::cout &lt;&lt; add(7) &lt;&lt; '\n';           // 使用預設參數：7
+    return 0;
+}
+</code></pre>
+    <p class="output-label">預期輸出：</p>
+    <pre><code>5
+3
+7
+</code></pre>
+  </section>
+
+  <section class="pitfalls">
+    <h2>常見錯誤</h2>
+    <ul>
+      <li><strong>回傳區域變數的參考</strong>：函式結束時區域變數已被銷毀，回傳的參考成為懸空參考（dangling reference），存取它是未定義行為。正確做法是回傳值，或回傳由呼叫者提供的物件參考。</li>
+      <li><strong>對 <code>std::string</code> 參數使用傳值</strong>：每次呼叫都會複製字串，應改用 <code>const std::string&amp;</code>。</li>
+      <li><strong>在標頭檔的兩個地方重複指定預設參數</strong>：宣告與定義都寫預設值會造成編譯錯誤，預設值只寫在宣告處。</li>
+    </ul>
+  </section>
+
+  <section class="exercises">
+    <h2>課堂練習</h2>
+    <details>
+      <summary>練習 1：實作 <code>swap</code>，使兩個 <code>int</code> 的值互換</summary>
+      <p>必須使用參考參數，否則函式內的交換不會影響呼叫端。</p>
+      <pre><code class="language-cpp">void swap_int(int&amp; a, int&amp; b) {
+    int tmp = a;
+    a = b;
+    b = tmp;
+}</code></pre>
+    </details>
+    <details>
+      <summary>練習 2：找出下列程式的錯誤</summary>
+      <pre><code class="language-cpp">int&amp; make_value() {
+    int v = 42;
+    return v;   // 錯誤：回傳區域變數的參考
+}</code></pre>
+      <p>修正：改為 <code>int make_value()</code>，回傳值本身。</p>
+    </details>
+  </section>
+
+  <section class="references">
+    <h2>參考資料</h2>
+    <ul>
+      <li><a href="https://en.cppreference.com/w/cpp/language/reference">cppreference：Reference declaration</a></li>
+      <li><a href="https://en.cppreference.com/w/cpp/language/inline">cppreference：inline specifier</a></li>
+    </ul>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>© 課程讀書筆記站｜內容為學習用途的個人整理</p>
+</footer>
+
+</body>
+</html>

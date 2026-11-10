@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 5 講｜模板與概念｜課程讀書筆記站</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="site-title" href="../index.html">課程讀書筆記站</a>
+    <a class="back-link" href="../index.html">← 回首頁</a>
+  </div>
+</header>
+
+<main>
+  <h1>第 5 講：模板與概念</h1>
+
+  <section class="meta">
+    <dl>
+      <dt>講次</dt><dd>第 5 講</dd>
+      <dt>先備知識</dt><dd>第 2 講（函式多載）</dd>
+      <dt>適用標準</dt><dd>函式與類別模板為 C++98 起；Concepts 為 C++20；範例以 C++20 編譯</dd>
+      <dt>最後檢查</dt><dd>2026-11-10</dd>
+    </dl>
+  </section>
+
+  <section class="objectives">
+    <h2>學習目標</h2>
+    <ul>
+      <li>能夠撰寫函式模板與類別模板，並理解模板參數推導</li>
+      <li>能夠理解模板實例化發生於編譯期，且定義通常需放在標頭檔中</li>
+      <li>能夠使用 C++20 concepts 限制模板參數，改善錯誤訊息</li>
+    </ul>
+  </section>
+
+  <section class="concepts">
+    <h2>核心概念</h2>
+    <h3>函式模板</h3>
+    <p>函式模板以 <code>template &lt;typename T&gt;</code> 宣告，編譯器會依據呼叫時的參數型別推導 <code>T</code>，並為每組型別產生一份實例。模板本身不是函式，只有實例化後才會產生可執行的程式碼。</p>
+
+    <h3>類別模板</h3>
+    <p>類別模板如 <code>std::vector&lt;T&gt;</code>，使用時必須明確指定模板參數（C++17 起，部分情況可由建構子推導）。成員函式只在被使用時才會實例化。</p>
+
+    <h3>Concepts（C++20）</h3>
+    <p>Concept 是對模板參數的具名約束。例如 <code>std::integral</code> 要求型別為整數型別。使用 concept 可以讓錯誤在呼叫處就被指出，而不是在模板內部深層產生冗長的錯誤訊息。</p>
+
+    <h3>定義位置</h3>
+    <p>由於實例化需要看到完整的模板定義，模板通常整個寫在標頭檔中。若定義在 <code>.cpp</code> 中，其他翻譯單元將無法實例化它，導致連結錯誤。</p>
+  </section>
+
+  <section class="examples">
+    <h2>程式範例</h2>
+    <p>編譯指令：<code>g++ -std=c++20 -Wall -Wextra main.cpp</code></p>
+
+    <h3>範例 1：函式模板與 concept 約束</h3>
+    <pre><code class="language-cpp">#include &lt;concepts&gt;
+#include &lt;iostream&gt;
+
+template &lt;typename T&gt;
+T max_of(T a, T b) { return (a &lt; b) ? b : a; }
+
+template &lt;std::integral T&gt;
+T gcd_of(T a, T b) {
+    while (b != 0) {
+        T t = b;
+        b = a % b;
+        a = t;
+    }
+    return a;
+}
+
+int main() {
+    std::cout &lt;&lt; max_of(3, 8) &lt;&lt; '\n';           // T = int
+    std::cout &lt;&lt; max_of(2.5, 1.5) &lt;&lt; '\n';       // T = double
+    std::cout &lt;&lt; gcd_of(48, 18) &lt;&lt; '\n';         // 6
+    // gcd_of(1.0, 2.0);  // 編譯錯誤：double 不滿足 std::integral
+    return 0;
+}
+</code></pre>
+    <p class="output-label">預期輸出：</p>
+    <pre><code>8
+2.5
+6
+</code></pre>
+
+    <h3>範例 2：類別模板</h3>
+    <pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;vector&gt;
+
+template &lt;typename T&gt;
+class Stack {
+public:
+    void push(const T&amp; v) { items_.push_back(v); }
+    void pop()            { items_.pop_back(); }
+    const T&amp; top() const  { return items_.back(); }
+    bool empty() const    { return items_.empty(); }
+private:
+    std::vector&lt;T&gt; items_;
+};
+
+int main() {
+    Stack&lt;std::string&gt; s;
+    s.push("first");
+    s.push("second");
+    std::cout &lt;&lt; s.top() &lt;&lt; '\n';   // second
+    return 0;
+}
+</code></pre>
+    <p class="output-label">預期輸出：</p>
+    <pre><code>second
+</code></pre>
+    <p>注意：範例 2 使用了 <code>std::string</code>，實際程式中應加上 <code>#include &lt;string&gt;</code>。</p>
+  </section>
+
+  <section class="pitfalls">
+    <h2>常見錯誤</h2>
+    <ul>
+      <li><strong>模板定義放在 <code>.cpp</code> 中</strong>：其他檔案包含標頭檔後無法實例化，出現連結錯誤。應將模板完整放在 <code>.hpp</code> 中。</li>
+      <li><strong>錯誤訊息過長</strong>：未使用 concept 時，錯誤通常出現在標準庫內部，訊息可能數百行。使用 concept 可以把錯誤指向呼叫處。</li>
+      <li><strong>假設模板參數可以隱式轉換</strong>：<code>max_of(1, 2.0)</code> 會因 <code>T</code> 推導衝突而無法編譯，需明確指定 <code>max_of&lt;double&gt;(1, 2.0)</code>。</li>
+    </ul>
+  </section>
+
+  <section class="exercises">
+    <h2>課堂練習</h2>
+    <details>
+      <summary>練習 1：撰寫 concept <code>Addable</code>，要求型別 <code>T</code> 支援 <code>+</code> 運算，並以它約束 <code>sum_of</code> 函式</summary>
+      <pre><code class="language-cpp">#include &lt;concepts&gt;
+
+template &lt;typename T&gt;
+concept Addable = requires(T a, T b) {
+    { a + b } -&gt; std::convertible_to&lt;T&gt;;
+};
+
+template &lt;Addable T&gt;
+T sum_of(T a, T b) { return a + b; }</code></pre>
+    </details>
+    <details>
+      <summary>練習 2：解釋為何 <code>gcd_of(1.0, 2.0)</code> 會在呼叫處被拒絕</summary>
+      <p>因為 <code>double</code> 不滿足 <code>std::integral</code>，編譯器在模板參數約束檢查階段即報錯，不會進入函式本體。</p>
+    </details>
+  </section>
+
+  <section class="references">
+    <h2>參考資料</h2>
+    <ul>
+      <li><a href="https://en.cppreference.com/w/cpp/language/templates">cppreference：Templates</a></li>
+      <li><a href="https://en.cppreference.com/w/cpp/language/constraints">cppreference：Constraints and concepts</a></li>
+    </ul>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>© 課程讀書筆記站｜內容為學習用途的個人整理</p>
+</footer>
+
+</body>
+</html>

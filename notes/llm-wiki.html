@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Wiki｜課程讀書筆記站</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="site-title" href="../index.html">課程讀書筆記站</a>
+    <a class="back-link" href="../index.html">← 回首頁</a>
+  </div>
+</header>
+
+<main>
+  <h1>LLM Wiki：讓 LLM 持續維護的個人知識庫</h1>
+
+  <section class="meta">
+    <dl>
+      <dt>來源</dt><dd>LLM Wiki（idea file）</dd>
+      <dt>作者</dt><dd>Andrej Karpathy</dd>
+      <dt>年份</dt><dd>2026</dd>
+      <dt>原文</dt><dd>以作者公開的 idea file 為準（請補上正式連結）</dd>
+      <dt>閱讀日期</dt><dd>2026-11-10</dd>
+    </dl>
+  </section>
+
+  <section class="summary">
+    <h2>一句話摘要</h2>
+    <p>傳統 RAG 每次提問都從原始文件重新檢索，知識無法累積；LLM Wiki 則讓 LLM 把新來源整合進一組互相連結的 markdown 頁面，使知識隨時間複利成長。</p>
+  </section>
+
+  <section class="key-points">
+    <h2>重點整理</h2>
+    <ol>
+      <li><strong>問題點</strong>：RAG 的每次查詢都要重新拼湊碎片，同一組文件被重複推導，沒有任何沉澱。</li>
+      <li><strong>核心做法</strong>：LLM 讀入新來源後，更新實體頁、主題摘要，並標記與舊內容的矛盾，把綜合結果「編譯一次、持續維護」。</li>
+      <li><strong>三層架構</strong>：唯讀的原始來源、LLM 負責撰寫的 Wiki、以及定義結構與流程的規範文件（如 AGENTS.md 或 CLAUDE.md）。</li>
+      <li><strong>三種操作</strong>：Ingest（匯入新來源）、Query（提問，好答案可歸檔回 Wiki）、Lint（定期健康檢查，找矛盾、孤立頁與缺口）。</li>
+      <li><strong>索引與日誌</strong>：index.md 作為內容目錄，log.md 作為只追加的時間序紀錄，兩者幫助 LLM 在規模變大後仍能導航。</li>
+      <li><strong>為何可行</strong>：維護成本（交叉連結、更新摘要）是人類放棄 Wiki 的主因，而 LLM 幾乎不會感到厭倦，維護成本因此趨近於零。</li>
+    </ol>
+  </section>
+
+  <section class="reflection">
+    <h2>我的心得</h2>
+    <p>這個模式把「人負責判斷與提問，LLM 負責整理與記帳」切得很清楚。對做課程筆記而言，我覺得最有價值的是「好答案要歸檔回 Wiki」這一點，它讓每次提問都會留下痕跡，而不是消失在聊天紀錄裡。</p>
+    <p>另一方面，這種模式的品質高度依賴來源品質與規範文件的寫法。若 LLM 把錯誤摘要寫進 Wiki 又不被察覺，錯誤也會複利。因此需要定期 Lint 與人工抽查。</p>
+  </section>
+
+  <section class="questions">
+    <h2>待釐清問題</h2>
+    <ul>
+      <li>當 Wiki 規模變大後，純靠 index.md 導航的上限在哪裡？</li>
+      <li>如何在自動更新時，保留人工撰寫的判斷不被覆蓋？</li>
+    </ul>
+  </section>
+
+  <section class="references">
+    <h2>參考資料</h2>
+    <ul>
+      <li>Andrej Karpathy，LLM Wiki idea file（課堂閱讀材料）</li>
+      <li>Vannevar Bush，《As We May Think》（1945），文中提出的 Memex 概念與本模式的精神相近</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>© 課程讀書筆記站｜內容為學習用途的個人整理</p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 4 講｜動態記憶體與智慧指標｜課程讀書筆記站</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="site-title" href="../index.html">課程讀書筆記站</a>
+    <a class="back-link" href="../index.html">← 回首頁</a>
+  </div>
+</header>
+
+<main>
+  <h1>第 4 講：動態記憶體與智慧指標</h1>
+
+  <section class="meta">
+    <dl>
+      <dt>講次</dt><dd>第 4 講</dd>
+      <dt>先備知識</dt><dd>第 3 講（RAII）</dd>
+      <dt>適用標準</dt><dd><code>std::unique_ptr</code> 與 <code>std::shared_ptr</code> 為 C++11；<code>std::make_unique</code> 為 C++14；範例以 C++17 編譯</dd>
+      <dt>最後檢查</dt><dd>2026-11-10</dd>
+    </dl>
+  </section>
+
+  <section class="objectives">
+    <h2>學習目標</h2>
+    <ul>
+      <li>能夠依所有權語意選擇 <code>unique_ptr</code>、<code>shared_ptr</code> 或 <code>weak_ptr</code></li>
+      <li>能夠解釋 <code>shared_ptr</code> 循環參照造成的記憶體洩漏，並以 <code>weak_ptr</code> 解決</li>
+      <li>能夠避免以同一個原始指標建立多個智慧指標</li>
+    </ul>
+  </section>
+
+  <section class="concepts">
+    <h2>核心概念</h2>
+    <h3>所有權的語意</h3>
+    <p>在設計介面時，先決定誰擁有物件。獨佔所有權使用 <code>std::unique_ptr</code>，它不可拷貝、只能移動，釋放時機明確。需要共享所有權時使用 <code>std::shared_ptr</code>，內部以參考計數決定何時釋放。只需觀察而不影響生命週期時，使用原始指標或參考即可。</p>
+
+    <h3><code>make_unique</code> 與 <code>make_shared</code></h3>
+    <p>優先使用 <code>std::make_unique</code>（C++14）與 <code>std::make_shared</code>。後者通常只需一次記憶體配置，且避免在複雜運算式中因求值順序而洩漏資源。</p>
+
+    <h3>循環參照與 <code>weak_ptr</code></h3>
+    <p>若兩個物件互相持有對方的 <code>shared_ptr</code>，參考計數永遠不會歸零，兩者都無法被釋放。<code>std::weak_ptr</code> 觀察物件但不增加參考計數，需要存取時以 <code>lock()</code> 取得暫時的 <code>shared_ptr</code>。</p>
+  </section>
+
+  <section class="examples">
+    <h2>程式範例</h2>
+    <p>編譯指令：<code>g++ -std=c++17 -Wall -Wextra main.cpp</code></p>
+
+    <h3>範例 1：獨佔所有權與共享所有權</h3>
+    <pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;memory&gt;
+
+int main() {
+    auto u = std::make_unique&lt;int&gt;(42);     // 獨佔
+    // auto u2 = u;                          // 編譯錯誤：unique_ptr 不可拷貝
+    auto u2 = std::move(u);                 // 所有權轉移，u 變為 nullptr
+
+    auto s1 = std::make_shared&lt;int&gt;(7);    // 共享
+    auto s2 = s1;                           // 參考計數變為 2
+    std::cout &lt;&lt; *u2 &lt;&lt; ' ' &lt;&lt; *s1 &lt;&lt; ' ' &lt;&lt; s2.use_count() &lt;&lt; '\n';
+    return 0;
+}
+</code></pre>
+    <p class="output-label">預期輸出：</p>
+    <pre><code>42 7 2
+</code></pre>
+
+    <h3>範例 2：以 <code>weak_ptr</code> 打破循環參照</h3>
+    <pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;memory&gt;
+
+struct Node {
+    std::shared_ptr&lt;Node&gt; next;
+    std::weak_ptr&lt;Node&gt; prev;   // 反向連結使用 weak_ptr
+    ~Node() { std::cout &lt;&lt; "~Node\n"; }
+};
+
+int main() {
+    auto a = std::make_shared&lt;Node&gt;();
+    auto b = std::make_shared&lt;Node&gt;();
+    a-&gt;next = b;
+    b-&gt;prev = a;     // 不增加 a 的參考計數
+    return 0;         // 兩個 ~Node 都會被呼叫
+}
+</code></pre>
+    <p class="output-label">預期輸出：</p>
+    <pre><code>~Node
+~Node
+</code></pre>
+  </section>
+
+  <section class="pitfalls">
+    <h2>常見錯誤</h2>
+    <ul>
+      <li><strong>以同一個原始指標建立兩個 <code>shared_ptr</code></strong>：兩者各自的參考計數都是 1，會造成 double delete。應只從 <code>new</code> 的結果建立一次，或直接使用 <code>make_shared</code>。</li>
+      <li><strong>循環參照</strong>：如範例中若將 <code>prev</code> 也改為 <code>shared_ptr</code>，兩個 <code>Node</code> 都不會被釋放，且不會有任何錯誤訊息。</li>
+      <li><strong>從 <code>get()</code> 取得的原始指標被長期保存</strong>：當智慧指標被銷毀後，該指標即為懸空指標。</li>
+    </ul>
+  </section>
+
+  <section class="exercises">
+    <h2>課堂練習</h2>
+    <details>
+      <summary>練習 1：為何 <code>std::unique_ptr</code> 可以被放入 <code>std::vector</code>，但不能被拷貝到另一個 <code>unique_ptr</code>？</summary>
+      <p><code>std::vector</code> 在重新配置時會搬移元素，此時移動即足夠；而拷貝建構子被刪除，代表不允許兩個 <code>unique_ptr</code> 同時擁有同一物件。</p>
+    </details>
+    <details>
+      <summary>練習 2：將範例 2 的 <code>prev</code> 改為 <code>shared_ptr</code>，預測輸出並說明原因</summary>
+      <p>輸出將不再有任何 <code>~Node</code>。a 與 b 互相持有對方，參考計數永遠大於 0，形成循環參照。</p>
+    </details>
+  </section>
+
+  <section class="references">
+    <h2>參考資料</h2>
+    <ul>
+      <li><a href="https://en.cppreference.com/w/cpp/memory/unique_ptr">cppreference：std::unique_ptr</a></li>
+      <li><a href="https://en.cppreference.com/w/cpp/memory/shared_ptr">cppreference：std::shared_ptr</a></li>
+      <li><a href="https://en.cppreference.com/w/cpp/memory/weak_ptr">cppreference：std::weak_ptr</a></li>
+    </ul>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>© 課程讀書筆記站｜內容為學習用途的個人整理</p>
+</footer>
+
+</body>
+</html>
